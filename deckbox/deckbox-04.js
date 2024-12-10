@@ -1,4 +1,4 @@
-const { draw, drawRectangle, drawCircle, Drawing } = replicad;
+const { draw, drawRectangle, drawCircle } = replicad;
 
 const magnetTolerance = 0.2;
 const nfcTolerance = 0.2;
@@ -7,10 +7,10 @@ const topTolerance = 0.2;
 const defaultParams = {
   deckWidth: 70,
   // deckDepth: 32,    // 60 single sleeved
-  deckDepth: 32.8,  //  two medium dice w/ 2mm wall
+  // deckDepth: 34.8,  //  two medium dice with 2mm wall
   // deckDepth: 42,    //  68 double sleeved
-  // deckDepth: 37.2,  //  60 double sleeved, three small dice
-  deckHeight: 93,
+  deckDepth: 37.2,  //  60 double sleeved, three small dice  
+  deckHeight: 98,
   cardBottom: 40,
   cardTop: 79,
   wallThickness: 2,
@@ -22,7 +22,6 @@ const defaultParams = {
   diceSmall: 12.4,
   diceMedium: 16.4,
   diceLarge: 23.0,
-  lidTolerance: 0.2
 };
 
 
@@ -34,60 +33,10 @@ function mirrorQuadrants( drawing ) {
 }
 
 
-function createPockets( size, count, offset, params ) {
-  
-  if ( count === 0 ) {
-    return;
-  }
-
-  const boxHeight = params.deckHeight + params.wallThickness;
-  const boxDepth = params.deckDepth + 2 * params.wallThickness;
-  const rimWidth = 2 * params.deckWidth + params.dividerThickness + 2 * params.wallThickness;
-  const ledgeSize = params.wallThickness / 2;
-  const pocketDepth = size + ledgeSize;
-
-  let drawing = drawRectangle( size, pocketDepth )
-    .translate( 0, - pocketDepth / 2 + boxDepth / 2 );
-  let walls = drawRectangle( ledgeSize, ledgeSize )
-    .translate( -size / 2 + ledgeSize / 2, boxDepth / 2 - ledgeSize / 2 );
-
-  drawing = drawing
-    .cut( walls.clone() )
-    .cut( walls.mirror( [ 0, 1 ], [ 0, 0 ], "plane" ) );
-
-  drawing = drawing
-    .fuse( drawing.mirror( [ 1, 0 ], [ 0, 0 ], "plane" ) );
-
-  let x0 = rimWidth / 2 - size / 2 - params.wallThickness;
-  let currOffset = offset;
-  let group = drawing.clone().translate( x0 + currOffset, 0 );
-
-  for ( let i = 0; i < count - 1; i++ ) {
-    currOffset -= ( size + params.wallThickness );
-    group = group.fuse( drawing
-      .clone()
-      .translate( x0 + currOffset, 0 ) 
-    );
-  }
-
-  currOffset -= ( size + params.wallThickness );
-
-  const bottom = 0;
-  // const bottom = params.deckHeight - Math.floor( params.deckHeight / size ) * size;
-
-  const solid = group
-    .sketchOnPlane( "XY", params.wallThickness + bottom )
-    .extrude( boxHeight );
-
-  return { solid, offset: currOffset };
-
-}
-
-
 const main = ( _, params ) => {
   
   //  main block
-  const pocketWidth = params.magnetSize + params.wallThickness;
+  const pocketWidth = params.magnetSize + 2 * params.wallThickness;
   const boxWidth = 2 * params.deckWidth + params.dividerThickness + 2 * params.wallThickness + 2 * pocketWidth;
   const boxDepth = params.deckDepth + 4 * params.wallThickness;
   const rimHeight = params.wallThickness + params.cardTop;
@@ -144,21 +93,18 @@ const main = ( _, params ) => {
 
   //  lid
 
-  const lidHeight = boxHeight - rimHeight + params.wallThickness + params.lidTolerance;
+  const lidHeight = boxHeight - rimHeight + params.wallThickness;
 
   let lid = drawRectangle( boxWidth, boxDepth )
     .sketchOnPlane( "XY", rimHeight )
     .extrude( lidHeight );
 
-    //  lid - outer fillet
+  //  lid - outer fillet
   lid = lid.fillet( params.wallThickness, 
     e => e.not( e => e.inPlane( "XY", rimHeight ) )
   );
 
-  const lidWidth = rimWidth + 2 * params.lidTolerance;
-  const lidDepth = rimDepth + 2 * params.lidTolerance;
-
-  let lidCutout = drawRectangle( lidWidth, lidDepth )
+  let lidCutout = drawRectangle( rimWidth, rimDepth )
     .sketchOnPlane( "XY", rimHeight )
     .extrude( lidHeight - params.wallThickness );
 
@@ -168,8 +114,8 @@ const main = ( _, params ) => {
   lid = lid.chamfer( params.wallThickness / 2, e => e.and([
     e => e.inPlane( "XY", rimHeight ),
     e => e.inBox( 
-      [ -rimWidth / 2 - params.lidTolerance, -rimDepth / 2 - params.lidTolerance, 0 ], 
-      [ rimWidth / 2 + params.lidTolerance, rimDepth / 2 + params.lidTolerance, rimHeight ] 
+      [ -rimWidth / 2, -rimDepth / 2, 0 ], 
+      [ rimWidth / 2, rimDepth / 2, rimHeight ] 
     )
   ]));
   
@@ -190,6 +136,9 @@ const main = ( _, params ) => {
 
   //  dice
 
+  
+  const ledgeSize = rimThickness;
+
   //  remove outer wall
   let outerWallDrawing = drawRectangle( rimWidth - params.wallThickness * 2, params.wallThickness )
     .translate( 0, rimDepth / 2 + params.wallThickness / 2 );
@@ -197,35 +146,36 @@ const main = ( _, params ) => {
     .fuse( outerWallDrawing.clone().mirror( [ 1, 0 ], [ 0, 0 ], "plane" ) );
 
   const outerWall = outerWallDrawing
-    .sketchOnPlane()
+    .sketchOnPlane( "XY", params.wallThickness )
     .extrude( boxHeight );
 
   box = box.cut( outerWall );
 
-  //  create pockets
-  let smallRes = createPockets( params.diceSmall, 3, 0, params );
-  box = box.cut( smallRes.solid );
-
-  let medRes = createPockets( params.diceMedium, 2, smallRes.offset, params );
-  box = box.cut( medRes.solid );
-
-  const restWidth = rimWidth + medRes.offset - 2 * params.wallThickness;
-  const restSolid = drawRectangle( restWidth, params.deckDepth )
-    .translate( - restWidth / 2 + medRes.offset + rimWidth / 2 - params.wallThickness, 0 )
+  //  small dice
+  let diceSmallDrawing = drawRectangle( params.diceSmall, boxDepth )
+    .translate( 0, - boxDepth / 2 );
+  let walls = drawRectangle( ledgeSize, ledgeSize )
+    .translate( -params.diceSmall / 2 + ledgeSize / 2, -params.diceSmall - ledgeSize / 2 );
+  
+  diceSmallDrawing = diceSmallDrawing
+    .cut( walls.clone() )
+    .cut( walls.mirror( [ 0, 1 ], [ 0, 0 ], "plane" ) )
+    .translate( 0, - params.diceSmall / 2 - params.wallThickness / 2 );
+  
+  let diceSmallSolid = diceSmallDrawing
+    .fuse( diceSmallDrawing.mirror( [ 1, 0 ], [ 0, 0 ], "plane" ) )
     .sketchOnPlane( "XY", params.wallThickness )
-    .extrude( boxHeight );
+    .extrude( boxHeight - params.wallThickness );
 
-  box = box.cut( restSolid );
+  let currx = rimWidth / 2 - params.diceSmall / 2 - params.wallThickness;
+  for ( let i = 0; i < 3; i++ ) {
+    box = box.cut( diceSmallSolid
+      .clone()
+      .translateX( currx ) );
+    currx -= ( params.diceSmall + params.wallThickness );
+  }
 
-  // fillet
-  // box = box.fillet( 0.05, e => e.inPlane( "XZ", boxDepth / 2 - params.wallThickness ) );
-  // box = box.fillet( params.wallThickness / 2, e => e.inBox(
-  //   [ -boxWidth, boxDepth / 2 - params.wallThickness + 0.1, params.wallThickness ],
-  //   [ boxWidth, boxDepth, boxHeight ]
-  // ));
-
-
-  //  content cutouts
+  // //  content cutouts
   
   // const innerWidth = params.deckWidth;
   // const innerCutoutA = drawRectangle( innerWidth, params.deckDepth )
@@ -237,6 +187,6 @@ const main = ( _, params ) => {
   // box = box.cut( innerCutoutB );
   
 
-  return [ box, lid ];
+  return box;
   
 };
