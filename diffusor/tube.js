@@ -4,25 +4,9 @@ const defaultParams = {
   stripWidth: 11,
   tubeDiameter: 20,
   tubeHeight: 64,
-  mode: "l2c",
+  edge: 2.0,
+  mode: "l2o",
 };
-
-const offsets25 = {
-  "l1o": 0.92,
-  "l1c": -0.86,
-  "l2o": 1.71,
-  "l2c": -0.01,
-}
-
-const offsets20 = {
-  "l1o": 1.31,
-  "l1c": -0.5,
-  "l2o": 2.17,
-  "l2c": 0.39,
-}
-
-const offsets = offsets20;
-const factor = 0.5; //  0.0;
 
 
 const main = ( _, params ) => {
@@ -31,36 +15,59 @@ const main = ( _, params ) => {
   const single = [ "l1o", "l1c" ].includes( params.mode );
 
   const height = open ? 1.2 : 2.8;
-  const tubeThickness = single ? 0.45 : 0.84;
-  const canalThickness = tubeThickness;
-  const offset = offsets[ params.mode ];
+  const thickness = single ? 0.45 : 0.85; //  second layer: 0.42 per
+  const radius = height / 4;
 
   const d = params.tubeDiameter;
-  const r1 = params.tubeDiameter / 2;
-  const r2 = r1 - tubeThickness;
+  const r1 = d / 2;
+  const r2 = r1 + thickness;
 
-  const innerCanal = drawRectangle( params.stripWidth, height, height / 4 )
-  let canal = innerCanal
-    .offset( canalThickness )
+  const innerCanal = drawRectangle( params.stripWidth, height, radius )
+  let canal = drawRectangle( params.stripWidth + 2 * thickness, height + 2 * thickness, 2 * radius )
     .cut( innerCanal )
-    .translate( 0, - height / 2 - canalThickness );
-  
+    .translate( 0, height / 2 + thickness );
+
+
   if ( open ) {
     canal = canal.cut( 
-      drawRectangle( params.stripWidth - 2 * 2, canalThickness )
-      .translate( 0, -canalThickness / 2 ) 
+      drawRectangle( params.stripWidth - 2 * params.edge, thickness )
+      .translate( 0, -thickness / 2 + height + 2 * thickness ) 
     );
+    canal = canal.fillet( radius );
   }
 
-  let tube = drawCircle( r1 ).cut( drawCircle( r2 ) );
-  tube = tube.cut( 
-    drawRectangle( params.stripWidth + canalThickness * factor, d )
-    .translate( 0, - r1  ) 
-  )
-  
-  const drawing = tube.fuse( canal.translate( 0, - r1 + 2 * height + offset ) );
-  return drawing
+//
+//  compute canal height offset `c` based on outer radius `a` at outer canal width `b`
+//  
+//        │        
+//       /│\       
+//      / │ \      
+//   a /  │  \     
+//    /   │c  \    
+//   /    │    \   
+//  ──────│──────  
+//     b        
+//
 
+  const a = r2;
+  const b = params.stripWidth / 2 + thickness;
+  const c = Math.sqrt( a * a - b * b );
+  
+  let tube = drawCircle( r2 ).cut( drawCircle( r1 ) );
+  tube = tube.cut( 
+    draw( [ 0, 0 ] )
+    .lineTo( [ -b, -c ] )
+    .lineTo( [ b, -c ] )
+    .close()
+  );
+  tube = tube.cut( 
+    drawRectangle( 2 * r2, r2 )
+    .translate( 0, -r2 / 2 - c )
+  );
+  const drawing = tube
+    .fuse( canal.translate( 0, -c  ) )
+    .fuse( drawRectangle( 2 * b, thickness ).translate( 0, thickness / 2 - c ) );
+  
   //  plate
   // const cx = 4;
   // const cy = 5;
@@ -71,7 +78,7 @@ const main = ( _, params ) => {
   //   .sketchOnPlane()
   //   .extrude( -1 );
 
-  // let stand = drawCircle( r2 - 0.2 )
+  // let stand = drawCircle( r2 - 0.1 )
   //   .cut( drawRectangle( 2 * r2, r2 ).translate( 0, -r2 ))
   // const x0 = - ( ( 2 * r1 + m ) * ( cx - 1 ) ) / 2;
   // const y0 = - ( ( 2 * r1 + m ) * ( cy - 1 ) ) / 2;
@@ -92,6 +99,8 @@ const main = ( _, params ) => {
   //   e => e.inPlane( "XY", h )
   // ]));
 
-  return drawing.sketchOnPlane().extrude( params.tubeHeight );
+  return drawing
+    .sketchOnPlane()
+    .extrude( params.tubeHeight );
   
 };
