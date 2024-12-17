@@ -2,9 +2,10 @@ const { draw, drawRectangle, drawCircle } = replicad;
 
 const defaultParams = {
   stripWidth: 11,
-  tubeDiameter: 20,
+  tubeDiameter: 24,
   tubeHeight: 64,
-  edge: 2.0,
+  edge: 2,
+  overlap: 4,
   mode: "l2o",
 };
 
@@ -15,7 +16,7 @@ const main = ( _, params ) => {
   const single = [ "l1o", "l1c" ].includes( params.mode );
 
   const height = open ? 1.2 : 2.8;
-  const thickness = single ? 0.45 : 0.85; //  second layer: 0.42 per
+  const thickness = single ? 0.42 : 0.84; //  second layer: 0.42 per
   const radius = height / 4;
 
   const d = params.tubeDiameter;
@@ -66,8 +67,9 @@ const main = ( _, params ) => {
   );
   const drawing = tube
     .fuse( canal.translate( 0, -c  ) )
-    .fuse( drawRectangle( 2 * b, thickness ).translate( 0, thickness / 2 - c ) );
-  
+    .fuse( drawRectangle( 2 * b, thickness ).translate( 0, thickness / 2 - c ) )
+    // .fillet( 2, e => e.atPoint( [ 6.34, -9.46 ] ) );
+
   //  plate
   // const cx = 4;
   // const cy = 5;
@@ -99,8 +101,34 @@ const main = ( _, params ) => {
   //   e => e.inPlane( "XY", h )
   // ]));
 
-  return drawing
+  let shape = drawing
     .sketchOnPlane()
     .extrude( params.tubeHeight );
-  
+
+  const a2 = r2;
+  const b2 = params.stripWidth / 2 + 4 * thickness;
+  const c2 = Math.sqrt( a2 * a2 - b2 * b2 );
+
+  shape = shape.cut( 
+    drawCircle( r2 - thickness / 2 )
+    .cut( drawCircle( r1 ) )
+    .cut( 
+      draw( [ 0, 0 ] )
+      .lineTo( [ -b2, -c2 ] )
+      .lineTo( [ b2, -c2 ] )
+      .close()
+    )
+    .cut( drawRectangle( b2 * 2, r1 ).translate( 0, -c2 - r1 / 2 ) )
+    .sketchOnPlane()
+    .extrude( params.overlap )
+  )
+
+  shape = shape.cut(
+    shape
+    .clone()
+    .translate( 0, 0, params.tubeHeight - params.overlap )
+  )
+
+  return shape;
+
 };
