@@ -3,10 +3,11 @@ const { draw, drawRectangle, drawCircle } = replicad;
 const defaultParams = {
   stripWidth: 11,
   tubeDiameter: 24,
-  tubeHeight: 64,
+  tubeHeight: 200,
   edge: 2,
   overlap: 4,
   mode: "l2o",
+  connector: false
 };
 
 
@@ -105,29 +106,33 @@ const main = ( _, params ) => {
     .sketchOnPlane()
     .extrude( params.tubeHeight );
 
-  const a2 = r2;
-  const b2 = params.stripWidth / 2 + 4 * thickness;
-  const c2 = Math.sqrt( a2 * a2 - b2 * b2 );
+  if ( params.connector ) {
 
-  shape = shape.cut( 
-    drawCircle( r2 - thickness / 2 )
-    .cut( drawCircle( r1 ) )
-    .cut( 
-      draw( [ 0, 0 ] )
-      .lineTo( [ -b2, -c2 ] )
-      .lineTo( [ b2, -c2 ] )
-      .close()
+    const a2 = r2;
+    const b2 = params.stripWidth / 2 - thickness;
+    const c2 = Math.sqrt( a2 * a2 - b2 * b2 );
+
+    shape = shape.cut( 
+      drawCircle( r2 - thickness / 2 )
+      .cut( drawCircle( r1 ) )
+      // .cut( 
+      //   draw( [ 0, 0 ] )
+      //   .lineTo( [ -b2, -c2 ] )
+      //   .lineTo( [ b2, -c2 ] )
+      //   .close()
+      // )
+      // .cut( drawRectangle( b2 * 2, r1 ).translate( 0, -c2 - r1 / 2 ) )
+      .sketchOnPlane()
+      .extrude( params.overlap )
     )
-    .cut( drawRectangle( b2 * 2, r1 ).translate( 0, -c2 - r1 / 2 ) )
-    .sketchOnPlane()
-    .extrude( params.overlap )
-  )
 
-  shape = shape.cut(
-    shape
-    .clone()
-    .translate( 0, 0, params.tubeHeight - params.overlap )
-  )
+    shape = shape.cut(
+      shape
+      .clone()
+      .translate( 0, 0, params.tubeHeight - params.overlap )
+    )
+  
+  }
 
   return shape;
 
