@@ -2,9 +2,9 @@ const { draw, drawRectangle, drawCircle } = replicad;
 
 const defaultParams = {
   stripWidth: 11,
-  tubeDiameter: 24,
-  tubeHeight: 200,
-  edge: 2,
+  tubeDiameter: 30,
+  tubeHeight: 250,
+  edge: 2,  //  open strip clamp size
   overlap: 4,
   mode: "l2o",
   connector: false
@@ -18,24 +18,26 @@ const main = ( _, params ) => {
 
   const height = open ? 1.2 : 2.8;
   const thickness = single ? 0.42 : 0.84; //  second layer: 0.42 per
-  const radius = height / 4;
+  const radius = thickness / 4;
 
   const d = params.tubeDiameter;
   const r1 = d / 2;
   const r2 = r1 + thickness;
 
-  const innerCanal = drawRectangle( params.stripWidth, height, radius )
-  let canal = drawRectangle( params.stripWidth + 2 * thickness, height + 2 * thickness, 2 * radius )
+  const innerCanal = drawRectangle( params.stripWidth, height )
+  let canal = drawRectangle( params.stripWidth + 2 * thickness, height + 2 * thickness )
     .cut( innerCanal )
     .translate( 0, height / 2 + thickness );
 
-
   if ( open ) {
+
     canal = canal.cut( 
       drawRectangle( params.stripWidth - 2 * params.edge, thickness )
       .translate( 0, -thickness / 2 + height + 2 * thickness ) 
     );
-    canal = canal.fillet( radius );
+
+    // canal = canal.fillet( radius );
+
   }
 
 //
@@ -56,22 +58,29 @@ const main = ( _, params ) => {
   const c = Math.sqrt( a * a - b * b );
   
   let tube = drawCircle( r2 ).cut( drawCircle( r1 ) );
+
   tube = tube.cut( 
     draw( [ 0, 0 ] )
     .lineTo( [ -b, -c ] )
     .lineTo( [ b, -c ] )
     .close()
   );
+
   tube = tube.cut( 
-    drawRectangle( 2 * r2, r2 )
-    .translate( 0, -r2 / 2 - c )
+    drawRectangle( 2 * a, a )
+    .translate( 0, -a / 2 - c )
   );
+
   const drawing = tube
     .fuse( canal.translate( 0, -c  ) )
     .fuse( drawRectangle( 2 * b, thickness ).translate( 0, thickness / 2 - c ) )
-    // .fillet( 2, e => e.atPoint( [ 6.34, -9.46 ] ) );
+    .fillet( height + 2 * thickness );
+  
+  // return drawing;
 
+  //////////
   //  plate
+
   // const cx = 4;
   // const cy = 5;
   // const m = 2;
@@ -102,9 +111,15 @@ const main = ( _, params ) => {
   //   e => e.inPlane( "XY", h )
   // ]));
 
+
   let shape = drawing
     .sketchOnPlane()
+    // .wires()
+    // .revolve( [ 0, 1, 0 ], { origin: [ 32, 0, 0 ] } )
     .extrude( params.tubeHeight );
+
+  //////////////
+  //  connector
 
   if ( params.connector ) {
 
@@ -134,6 +149,6 @@ const main = ( _, params ) => {
   
   }
 
-  return shape;
+  return shape.rotate( 180 );
 
 };
