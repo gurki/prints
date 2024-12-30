@@ -18,7 +18,9 @@ const h = 20;
 const hled = 2;
 const wled = 10.2;
 const wall = 3 * l;
-
+const ledWall = wall;
+const hrest = 2 * l;
+  
 
 function repeatPoly( shape, sides ) {
 
@@ -78,6 +80,33 @@ const main = ( _, params ) => {
   const tinner = isHex ? Rinner : Math.sqrt( ( 5 - Math.sqrt( 5 ) ) / 2 ) * Rinner;
   const rinner = isHex ? Math.sqrt( 3 ) / 2 * tinner : tinner / ( 2 * Math.sqrt( 5 - Math.sqrt( 20 ) ) );
 
+  //  clip
+
+  const rimOuter = wled / 2 + ledWall;
+  const clipSize = wall;
+  const hookWidth = clipSize / 2;
+  const tolerance = 0.2;
+
+  const uclip = draw()
+    .vLine( clipSize )
+    .hLine( rimOuter + clipSize )
+    .vLine( - hled - hrest - 2 * clipSize - tolerance )
+    .hLine( - hookWidth )
+    .lineTo( [ rimOuter - hookWidth, -hled - hrest - tolerance ] )
+    .hLine( hookWidth )
+    .vLine( hled + hrest + tolerance )
+    .close()
+    .sketchOnPlane()
+    .extrude( clipSize );
+      
+  return uclip.clone().fuse( uclip.mirror() )
+    .fillet( l, f => f.not(
+      f => f.inBox( [ -rimOuter, -hled-hrest-clipSize-tolerance, 0 ], [ rimOuter, 0, clipSize ] ),
+      // f => f.atDistance( rimOuter + clipSize, [ 0, - hled - hrest - clipSize - tolerance, 0 ] )
+    ));
+
+  //  body
+
   const hexl = drawPolysides( R, sides )
     .sketchOnPlane();
 
@@ -85,7 +114,7 @@ const main = ( _, params ) => {
     .sketchOnPlane( "XY", h )
 
   let hex = hexl.clone().loftWith( hexs.clone() );
-  
+    
   //  floor 
 
   const hexl2 = drawPolysides( R - wall, sides ).sketchOnPlane();
@@ -95,8 +124,6 @@ const main = ( _, params ) => {
   hex = hex.cut( hex2 ).fuse( floor );
   
   //  led holder
-
-  const ledWall = wall;
 
   const rim =
     drawCircle( wled / 2 + ledWall )
@@ -108,16 +135,16 @@ const main = ( _, params ) => {
     drawCircle( wled / 2 + ledWall )
     // .cut( drawCircle( wled / 2 - 1 ) )
     .sketchOnPlane( "XY", hled )
-    .extrude( 2 * l );
+    .extrude( hrest );
 
   const diffusor = draw()
-    .hLineTo( wled / 2 + 2 * l )
+    .hLineTo( wled / 2 + hrest )
     .vLine( ledWall )
-    .tangentArc( - wled / 2 - 2 * l, wled / 2 + 2 * l )
+    .tangentArc( - wled / 2 - hrest, wled / 2 + hrest )
     .close()
     .sketchOnPlane( "XZ" )
     .revolve( [ 0, 0, 1 ] )
-    .shell( 2 * l, f => f.inPlane() );
+    .shell( hrest, f => f.inPlane() );
 
   const pocket = rim.fuse( rest );
 
