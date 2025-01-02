@@ -3,11 +3,11 @@ const { draw, drawRectangle, drawCircle } = replicad;
 const defaultParams = {
   stripWidth: 11,
   tubeDiameter: 30,
-  tubeHeight: 250,
+  tubeHeight: 60,
   edge: 2,  //  open strip clamp size
   overlap: 4,
   mode: "l2o",
-  connector: false
+  connector: true
 };
 
 
@@ -75,47 +75,9 @@ const main = ( _, params ) => {
     .fuse( canal.translate( 0, -c  ) )
     .fuse( drawRectangle( 2 * b, thickness ).translate( 0, thickness / 2 - c ) )
     .fillet( height + 2 * thickness );
-  
-  // return drawing;
-
-  //////////
-  //  plate
-
-  // const cx = 4;
-  // const cy = 5;
-  // const m = 2;
-  // const h = 6;
-
-  // let standPlate = drawRectangle( ( 2 * r1 + m ) * cx + m, ( 2 * r1 + m ) * cy + m, m )
-  //   .sketchOnPlane()
-  //   .extrude( -1 );
-
-  // let stand = drawCircle( r2 - 0.1 )
-  //   .cut( drawRectangle( 2 * r2, r2 ).translate( 0, -r2 ))
-  // const x0 = - ( ( 2 * r1 + m ) * ( cx - 1 ) ) / 2;
-  // const y0 = - ( ( 2 * r1 + m ) * ( cy - 1 ) ) / 2;
-  
-  // for ( let x = 0; x < cx; x++ ) {
-  //   for ( let y = 0; y < cy; y++ ) {
-  //     let curr = stand
-  //       .clone()
-  //       .translate( x0 + ( 2 * r1 + m ) * x, y0 + ( 2 * r1 + m ) * y )
-  //       .sketchOnPlane()
-  //       .extrude( h );
-  //     standPlate = standPlate.fuse( curr );
-  //   }
-  // }
-
-  // return standPlate.fillet( 2, e => e.and( [ 
-  //   e => e.ofCurveType( "CIRCLE" ),   
-  //   e => e.inPlane( "XY", h )
-  // ]));
-
 
   let shape = drawing
     .sketchOnPlane()
-    // .wires()
-    // .revolve( [ 0, 1, 0 ], { origin: [ 32, 0, 0 ] } )
     .extrude( params.tubeHeight );
 
   //////////////
@@ -123,32 +85,59 @@ const main = ( _, params ) => {
 
   if ( params.connector ) {
 
-    const a2 = r2;
-    const b2 = params.stripWidth / 2 - thickness;
-    const c2 = Math.sqrt( a2 * a2 - b2 * b2 );
+    const railSize = 4 * thickness;
+    const railWall = 2 * thickness;
+    const wedgeWidth = 3 * thickness;
+    const railLength = 0.25 * params.tubeHeight;
 
-    shape = shape.cut( 
-      drawCircle( r2 - thickness / 2 )
-      .cut( drawCircle( r1 ) )
-      // .cut( 
-      //   draw( [ 0, 0 ] )
-      //   .lineTo( [ -b2, -c2 ] )
-      //   .lineTo( [ b2, -c2 ] )
-      //   .close()
-      // )
-      // .cut( drawRectangle( b2 * 2, r1 ).translate( 0, -c2 - r1 / 2 ) )
+    let rail = drawRectangle( 2 * b, railSize )
+      .translate( 0, railSize / 2 )
+      // .fillet( thickness, e => e.atDistance( b, [ 0, 0 ] ));
+
+    const wedgeHead = draw()
+      .hLineTo( wedgeWidth )
+      .lineTo( [ b - railWall, railSize - railWall ] )
+      .hLineTo( 0 )
+      .closeWithMirror();
+
+    const wedge = drawRectangle( 2 * b, railSize, thickness )
+      .translate( 0, -railSize / 2 )
+      .fuse( wedgeHead )
       .sketchOnPlane()
-      .extrude( params.overlap )
-    )
+      .extrude( 2 * railLength );
 
-    shape = shape.cut(
-      shape
-      .clone()
-      .translate( 0, 0, params.tubeHeight - params.overlap )
-    )
+    // return wedge;
+
+    rail = rail
+      .cut( wedgeHead.offset( 0.2 ) )
+    
+    rail = rail
+      .sketchOnPlane()
+      .extrude( railLength );
+
+    const stand = draw()
+      .hLine( railSize )
+      .lineTo( [ railSize, -2 * railSize ] )
+      .close()
+      .sketchOnPlane( "YZ", -b )
+      .extrude( 2 * b )
+
+    rail = rail.fuse( stand );
+    rail = rail.fillet( thickness, e => e.and( [
+      e => e.either([ e => e.inPlane( "YZ", b ), e => e.inPlane( "YZ", -b ) ]),
+      e => e.not( e => e.inPlane( "XZ", -railSize ) ),
+      e => e.not( e => e.inPlane( "XY", railLength ) )
+    ]));
+    
+    rail = rail.translate( 0, - railSize + thickness - c );
+
+    shape = shape
+      .fuse( rail.clone().translate( 0, 0, params.tubeHeight - railLength ) )
+      .fuse( rail.clone().mirror( [ 0, 0, 1 ] ).translate( 0, 0, railLength ) );
   
   }
 
   return shape.rotate( 180 );
+  // return shape;
 
 };
