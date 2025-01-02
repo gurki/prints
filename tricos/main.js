@@ -90,7 +90,7 @@ const main = ( _, params ) => {
   //  cone
 
   const tolerance = 0.5;
-  const fixtureSize = 11.5 - tolerance;
+  const fixtureSize = 12.2 - tolerance;
   const rcone = fixtureSize / 2 + wall;
   const { R: Rcone } = fromInscribed( rcone, sides );
 
@@ -103,7 +103,7 @@ const main = ( _, params ) => {
   const fixture = drawCircle( fixtureSize + wall )
     .cut( drawCircle( ( fixtureSize + tolerance ) / 2 ) )
     .sketchOnPlane( "XY", h2 )
-    .extrude( -1 )
+    .extrude( - 3 * lh )
     .intersect( hexc.clone() );
 
   //  cutouts 
@@ -114,7 +114,7 @@ const main = ( _, params ) => {
   const hexsc2 = drawPolysides( Rcone - wall, sides ).sketchOnPlane( "XY", h2 )
   const hexc2 = hexlc2.clone().loftWith( hexsc2 );
 
-  const floor = hexlc2.extrude( lh );
+  const floor = hexlc2.extrude( 2 * lh );
   hexc = hexc.cut( hexc2 ).fuse( floor );
 
   hex = hex.fuse( hexc );
