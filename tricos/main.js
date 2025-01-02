@@ -50,13 +50,14 @@ function fromCircumscribed( R, sides ) {
 } 
 
 
-function repeatPoly( shape, sides ) {
+function repeatPoly( shape, sides, offset = 0, stride = 1 ) {
 
-  const theta0 = ( sides === 5 ) ? -90 : 0;
-  let res = shape.clone().rotate( theta0 );
+  const increment = 360 / sides;
+  const theta0 = ( ( sides === 5 ) ? -90 : 0 );
+  let res = shape.clone().rotate( theta0 + offset * increment );
 
-  for ( let i = 1; i < sides; i++ ) {
-    res = res.fuse( shape.clone().rotate( theta0 + i * 360 / sides ) );
+  for ( let i = offset + stride; i < sides; i += stride ) {
+    res = res.fuse( shape.clone().rotate( theta0 + i * increment ) );
   }
 
   return res;
@@ -127,45 +128,75 @@ const main = ( _, params ) => {
   const nobRim = l * 0.5;
   const jointOffset = 1 / 4 * ( t + tinner ) / 2;
 
-  const unobDrawing = draw()
-    .vLine( nobSize )
-    .hLine( wall + 0.2 )
-    .vLine( nobRim )
-    .lineTo( [ wall * 2, nobSize - nobRim ] )    
-    .vLineTo( 0 )
-    .close();
+  if ( isHex ) {
+      
+    const unobDrawing = draw()
+      .vLine( nobSize )
+      .hLine( wall + 0.2 )
+      .vLine( nobRim )
+      .lineTo( [ wall * 2, nobSize - nobRim ] )    
+      .vLineTo( 0 )
+      .close();
 
-  const unob = unobDrawing
-    .sketchOnPlane()
-    .revolve( [ 1, 0 ] );
+    const unob = unobDrawing
+      .sketchOnPlane()
+      .revolve( [ 1, 0 ] );
 
-  const nob = unob
-    .clone()
-    .rotate( -90 + inclination, [], [ 0, 1, 0 ] )
-    .translate( ( rinner + r ) / 2, - jointOffset, h / 2 );
+    const nob = unob
+      .clone()
+      .rotate( -90 + inclination, [], [ 0, 1, 0 ] )
+      .translate( ( rinner + r ) / 2, - jointOffset, h / 2 );
 
-  const nobs = repeatPoly( nob, sides );
+    const nobs = repeatPoly( nob, sides, 0, 2 );
 
-  hex = hex.fuse( nobs );
+    hex = hex.fuse( nobs );
 
-  const uhole = unobDrawing
-    .clone()
-    .offset( nobRim / 2 )
-    .cut( drawRectangle( R, R ).translate( 0, - R / 2 ) )
-    .sketchOnPlane()
-    .revolve( [ 1, 0 ] );
+    const uhole = unobDrawing
+      .clone()
+      .offset( nobRim / 2 )
+      .cut( drawRectangle( R, R ).translate( 0, - R / 2 ) )
+      .sketchOnPlane()
+      .revolve( [ 1, 0 ] );
 
-  const hole = uhole
-    .clone()
-    .mirror( "YZ" )
-    .rotate( -90 + inclination, [], [ 0, 1, 0 ] )
-    .translate( ( rinner + r ) / 2, jointOffset, h / 2 );
+    const hole = uhole
+      .clone()
+      .mirror( "YZ" )
+      .rotate( -90 + inclination, [], [ 0, 1, 0 ] )
+      .translate( ( rinner + r ) / 2, jointOffset, h / 2 );
 
-  const holes = repeatPoly( hole, sides );
-  hex = hex.cut( holes );
-  
-  return {
-    shape: hex
+    const holes = repeatPoly( hole, sides, 0, 2 );
+    hex = hex.cut( holes );
+
   }
+
+  //  snap fit
+
+  const railRadius = l;
+  const railLength = tinner / 2;
+  const railTolerance = 0.2;
+
+  if ( isHex ) {
+    
+    const railNeg = drawCircle( railRadius + railTolerance / 2 )
+      .sketchOnPlane( "XZ", - railLength / 2 )
+      .extrude( railLength )
+      .translate( ( rinner + r ) / 2, 0, h / 2 );    
+
+    const railNegs = repeatPoly( railNeg, sides, 1, 2 );
+    hex = hex.cut( railNegs );
+
+  } else {
+
+    const rail = drawCircle( railRadius )
+      .sketchOnPlane( "XZ", - railLength / 2 )
+      .extrude( railLength )
+      .translate( ( rinner + r ) / 2, 0, h / 2 );
+      
+    const rails = repeatPoly( rail, sides, 0, 1 );
+    hex = hex.fuse( rails );
+
+  }
+  
+  return hex;
 
 };
