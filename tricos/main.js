@@ -82,28 +82,28 @@ const main = ( _, params ) => {
 
   //  clip
 
-  const rimOuter = wled / 2 + ledWall;
-  const clipSize = wall;
-  const hookWidth = clipSize / 2;
-  const tolerance = 0.2;
+  // const rimOuter = wled / 2 + ledWall;
+  // const clipSize = wall;
+  // const hookWidth = clipSize;
+  // const tolerance = 0.2;
 
-  const uclip = draw()
-    .vLine( clipSize )
-    .hLine( rimOuter + clipSize )
-    .vLine( - hled - hrest - 2 * clipSize - tolerance )
-    .hLine( - hookWidth )
-    .lineTo( [ rimOuter - hookWidth, -hled - hrest - tolerance ] )
-    .hLine( hookWidth )
-    .vLine( hled + hrest + tolerance )
-    .close()
-    .sketchOnPlane()
-    .extrude( clipSize );
+  // const uclip = draw()
+  //   .vLine( clipSize )
+  //   .hLine( rimOuter + clipSize )
+  //   .vLine( - hled - hrest - 2 * clipSize - tolerance )
+  //   .hLine( - hookWidth )
+  //   .lineTo( [ rimOuter - hookWidth, -hled - hrest - tolerance ] )
+  //   .hLine( hookWidth )
+  //   .vLine( hled + hrest + tolerance )
+  //   .close()
+  //   .sketchOnPlane()
+  //   .extrude( clipSize );
       
-  return uclip.clone().fuse( uclip.mirror() )
-    .fillet( l, f => f.not(
-      f => f.inBox( [ -rimOuter, -hled-hrest-clipSize-tolerance, 0 ], [ rimOuter, 0, clipSize ] ),
-      // f => f.atDistance( rimOuter + clipSize, [ 0, - hled - hrest - clipSize - tolerance, 0 ] )
-    ));
+  // return uclip.clone().fuse( uclip.mirror() )
+  //   .fillet( l, f => f.not(
+  //     f => f.inBox( [ -rimOuter, - hled - hrest - clipSize, 0 ], [ rimOuter, 0, clipSize ] ),
+  //     // f => f.atDistance( rimOuter + clipSize, [ 0, - hled - hrest - clipSize - tolerance, 0 ] )
+  //   ));
 
   //  body
 
