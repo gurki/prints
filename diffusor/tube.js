@@ -87,33 +87,49 @@ const main = ( _, params ) => {
 
     const railSize = 4 * thickness;
     const railWall = 2 * thickness;
-    const wedgeWidth = 3 * thickness;
-    const railLength = 0.25 * params.tubeHeight;
+    const wedgeLong = 5 * thickness;
+    const wedgeShort = 3 * thickness;
+    const notchSize = 0.45;
+    const notchWidth = b - 2 * railWall;
+    const railLength = 20;
+    const tolerance = 0.2;
 
     let rail = drawRectangle( 2 * b, railSize )
-      .translate( 0, railSize / 2 )
-      // .fillet( thickness, e => e.atDistance( b, [ 0, 0 ] ));
+      .translate( 0, railSize / 2 );
 
-    const wedgeHead = draw()
-      .hLineTo( wedgeWidth )
-      .lineTo( [ b - railWall, railSize - railWall ] )
+    let wedgeHead = draw()
+      .hLineTo( wedgeShort )
+      .lineTo( [ wedgeLong, railSize - railWall ] )
       .hLineTo( 0 )
       .closeWithMirror();
 
-    const wedge = drawRectangle( 2 * b, railSize, thickness )
-      .translate( 0, -railSize / 2 )
+    const notchDrawing = drawCircle( notchSize );
+    let notch = notchDrawing.clone()
+      .sketchOnPlane( "YZ", notchWidth )
+      .extrude( - 2 * notchWidth )
+      .translate( 0, railSize / 2, thickness );
+
+    let notchNeg = notchDrawing
+      .offset( tolerance / 2 )
+      .sketchOnPlane( "YZ", notchWidth + tolerance )
+      .extrude( - 2 * ( notchWidth + tolerance ) )
+      .translate( 0, railSize / 2, thickness );
+
+    let wedge = drawRectangle( 2 * ( b - railWall ), railSize )
+      .translate( 0, - railSize / 2 )
       .fuse( wedgeHead )
       .sketchOnPlane()
-      .extrude( 2 * railLength );
+      .extrude( 2 * railLength - tolerance )
+      .fillet( railSize / 2, e => e.inPlane( "XZ", railSize ) );
+
+    wedge = wedge.cut( notchNeg.clone().fuse(
+      notchNeg.clone().translateZ( 2 * railLength - 2 * thickness - notchSize / 2 ) )
+    );
 
     // return wedge;
 
-    rail = rail
-      .cut( wedgeHead.offset( 0.2 ) )
-    
-    rail = rail
-      .sketchOnPlane()
-      .extrude( railLength );
+    rail = rail.cut( wedgeHead.offset( tolerance ) )
+    rail = rail.sketchOnPlane().extrude( railLength );
 
     const stand = draw()
       .hLine( railSize )
@@ -128,16 +144,19 @@ const main = ( _, params ) => {
       e => e.not( e => e.inPlane( "XZ", -railSize ) ),
       e => e.not( e => e.inPlane( "XY", railLength ) )
     ]));
-    
+
     rail = rail.translate( 0, - railSize + thickness - c );
 
     shape = shape
       .fuse( rail.clone().translate( 0, 0, params.tubeHeight - railLength ) )
       .fuse( rail.clone().mirror( [ 0, 0, 1 ] ).translate( 0, 0, railLength ) );
+    
+    notch = notch.translate( 0, - railSize + thickness - c + 0.2 );
+    shape = shape.fuse( notch.clone().translate( 0, 0, params.tubeHeight - railLength ) );    
+    shape = shape.fuse( notch.clone().mirror( [ 0, 0, 1 ] ).translate( 0, 0, railLength ) );    
   
   }
 
   return shape.rotate( 180 );
-  // return shape;
 
 };
