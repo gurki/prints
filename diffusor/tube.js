@@ -128,7 +128,7 @@ const main = ( _, params ) => {
 
     // return wedge;
 
-    rail = rail.cut( wedgeHead.offset( tolerance ) )
+    rail = rail.cut( wedgeHead.offset( tolerance / 2 ) )
     rail = rail.sketchOnPlane().extrude( railLength );
 
     const stand = draw()
