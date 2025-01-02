@@ -107,13 +107,13 @@ const main = ( _, params ) => {
     let notch = notchDrawing.clone()
       .sketchOnPlane( "YZ", notchWidth )
       .extrude( - 2 * notchWidth )
-      .translate( 0, railSize / 2, thickness );
+      .translate( 0, railSize / 2, railWall );
 
     let notchNeg = notchDrawing
       .offset( tolerance / 2 )
       .sketchOnPlane( "YZ", notchWidth + tolerance )
       .extrude( - 2 * ( notchWidth + tolerance ) )
-      .translate( 0, railSize / 2, thickness );
+      .translate( 0, railSize / 2, railWall );
 
     let wedge = drawRectangle( 2 * ( b - railWall ), railSize )
       .translate( 0, - railSize / 2 )
@@ -123,7 +123,7 @@ const main = ( _, params ) => {
       .fillet( railSize / 2, e => e.inPlane( "XZ", railSize ) );
 
     wedge = wedge.cut( notchNeg.clone().fuse(
-      notchNeg.clone().translateZ( 2 * railLength - 2 * thickness - notchSize / 2 ) )
+      notchNeg.clone().translateZ( 2 * railLength - 4 * thickness - notchSize / 2 ) )
     );
 
     // return wedge;
