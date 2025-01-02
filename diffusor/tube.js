@@ -110,9 +110,9 @@ const main = ( _, params ) => {
       .translate( 0, railSize / 2, railWall );
 
     let notchNeg = notchDrawing
-      .offset( tolerance / 2 )
-      .sketchOnPlane( "YZ", notchWidth + tolerance )
-      .extrude( - 2 * ( notchWidth + tolerance ) )
+      .offset( tolerance )
+      .sketchOnPlane( "YZ", railSize * 2 )
+      .extrude( - 4 * railSize )
       .translate( 0, railSize / 2, railWall );
 
     let wedge = drawRectangle( 2 * ( b - railWall ), railSize )
@@ -128,7 +128,7 @@ const main = ( _, params ) => {
 
     // return wedge;
 
-    rail = rail.cut( wedgeHead.offset( tolerance / 2 ) )
+    rail = rail.cut( wedgeHead.offset( tolerance ) )
     rail = rail.sketchOnPlane().extrude( railLength );
 
     const stand = draw()
