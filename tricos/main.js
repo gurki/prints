@@ -7,13 +7,14 @@ const {
   lookFromPlane 
 } = replicad;
 
-const defaultParams = {};
+const defaultParams = {
+  sides: 5
+};
 
 
 const lh = 0.2;
 const l = 0.45;
 
-const sides = 5;
 const size = 160;
 const h = 10;
 const h2 = 30;
@@ -65,6 +66,8 @@ function repeatPoly( shape, sides ) {
 
 const main = ( _, params ) => {
 
+  const { sides } = params;
+
   const isHex = sides === 6;
   const Su = Math.sqrt( 2 * ( 29 + 9 * Math.sqrt( 5 ) ) ) / 4;  //  unit circum sphere radius
   const t = size / ( 2 * Su );  //  edge length
@@ -86,7 +89,8 @@ const main = ( _, params ) => {
     
   //  cone
 
-  const fixtureSize = 11.2;
+  const tolerance = 0.5;
+  const fixtureSize = 11.5 - tolerance;
   const rcone = fixtureSize / 2 + wall;
   const { R: Rcone } = fromInscribed( rcone, sides );
 
@@ -97,7 +101,7 @@ const main = ( _, params ) => {
   //  fixture
 
   const fixture = drawCircle( fixtureSize + wall )
-    .cut( drawCircle( fixtureSize / 2 + 0.2 ) )
+    .cut( drawCircle( ( fixtureSize + tolerance ) / 2 ) )
     .sketchOnPlane( "XY", h2 )
     .extrude( -1 )
     .intersect( hexc.clone() );
@@ -123,13 +127,15 @@ const main = ( _, params ) => {
   const nobRim = l * 0.5;
   const jointOffset = 1 / 4 * ( t + tinner ) / 2;
 
-  const unob = draw()
+  const unobDrawing = draw()
     .vLine( nobSize )
     .hLine( wall + 0.2 )
     .vLine( nobRim )
     .lineTo( [ wall * 2, nobSize - nobRim ] )    
     .vLineTo( 0 )
-    .close()
+    .close();
+
+  const unob = unobDrawing
     .sketchOnPlane()
     .revolve( [ 1, 0 ] );
 
@@ -142,9 +148,15 @@ const main = ( _, params ) => {
 
   hex = hex.fuse( nobs );
 
-  const hole = unob
+  const uhole = unobDrawing
     .clone()
-    .translate( - 0.2 )
+    .offset( nobRim / 2 )
+    .cut( drawRectangle( R, R ).translate( 0, - R / 2 ) )
+    .sketchOnPlane()
+    .revolve( [ 1, 0 ] );
+
+  const hole = uhole
+    .clone()
     .mirror( "YZ" )
     .rotate( -90 + inclination, [], [ 0, 1, 0 ] )
     .translate( ( rinner + r ) / 2, jointOffset, h / 2 );
