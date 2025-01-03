@@ -15,7 +15,7 @@ const defaultParams = {
 const lh = 0.2;
 const l = 0.45;
 
-const size = 160;
+const size = 200;
 const h = 10;
 const h2 = 30;
 const hled = 2;
@@ -45,7 +45,6 @@ function fromCircumscribed( R, sides ) {
   const isHex = ( sides === 6 );
   const t = isHex ? R : Math.sqrt( ( 5 - Math.sqrt( 5 ) ) / 2 ) * R;
   const r = isHex ? Math.sqrt( 3 ) / 2 * t : t / ( 2 * Math.sqrt( 5 - Math.sqrt( 20 ) ) );
-  console.log( R, t, r );
   return { r, R, t };
 } 
 
@@ -77,6 +76,8 @@ const main = ( _, params ) => {
   const d6 = t * ( 3 * Math.sqrt( 3 ) + Math.sqrt( 15 ) ) / 4;
   const d5 = t * Math.sqrt( 10 * ( 125 + 41 * Math.sqrt( 5 ) ) ) / 20;
 
+  console.log( d6, d5 );
+
   const d = isHex ? d6 : d5;
   const { r, R } = fromSide( t, sides );
   const Rinner = R * ( d - h ) / d;
@@ -90,8 +91,8 @@ const main = ( _, params ) => {
     
   //  cone
 
-  const tolerance = 0.5;
-  const fixtureSize = 12.2 - tolerance;
+  const coneTolerance = 0.5;
+  const fixtureSize = 12.2 - coneTolerance;
   const rcone = fixtureSize / 2 + wall;
   const { R: Rcone } = fromInscribed( rcone, sides );
 
@@ -102,7 +103,7 @@ const main = ( _, params ) => {
   //  fixture
 
   const fixture = drawCircle( fixtureSize + wall )
-    .cut( drawCircle( ( fixtureSize + tolerance ) / 2 ) )
+    .cut( drawCircle( ( fixtureSize + coneTolerance ) / 2 ) )
     .sketchOnPlane( "XY", h2 )
     .extrude( - 3 * lh )
     .intersect( hexc.clone() );
@@ -127,12 +128,13 @@ const main = ( _, params ) => {
   const nobSize = wall;
   const nobRim = l * 0.5;
   const jointOffset = 1 / 4 * ( t + tinner ) / 2;
+  const tolerance = 0.2;
 
   if ( isHex ) {
       
     const unobDrawing = draw()
       .vLine( nobSize )
-      .hLine( wall + 0.2 )
+      .hLine( wall + tolerance )
       .vLine( nobRim )
       .lineTo( [ wall * 2, nobSize - nobRim ] )    
       .vLineTo( 0 )
@@ -153,7 +155,7 @@ const main = ( _, params ) => {
 
     const uhole = unobDrawing
       .clone()
-      .offset( nobRim / 2 )
+      .offset( tolerance )
       .cut( drawRectangle( R, R ).translate( 0, - R / 2 ) )
       .sketchOnPlane()
       .revolve( [ 1, 0 ] );
@@ -171,18 +173,18 @@ const main = ( _, params ) => {
 
   //  snap fit
 
-  const railRadius = l;
-  const railLength = tinner / 2;
   const railTolerance = 0.2;
+  const railLength = tinner / 2;
+  const railRadius = 2 * l;
 
   if ( isHex ) {
     
-    const railNeg = drawCircle( railRadius + railTolerance / 2 )
+    const railNeg = drawCircle( railRadius )
       .sketchOnPlane( "XZ", - railLength / 2 )
       .extrude( railLength )
       .translate( ( rinner + r ) / 2, 0, h / 2 );    
 
-    const railNegs = repeatPoly( railNeg, sides, 1, 2 );
+    const railNegs = repeatPoly( railNeg, sides, 1, 2 ).fillet( railRadius );
     hex = hex.cut( railNegs );
 
   } else {
@@ -192,7 +194,7 @@ const main = ( _, params ) => {
       .extrude( railLength )
       .translate( ( rinner + r ) / 2, 0, h / 2 );
       
-    const rails = repeatPoly( rail, sides, 0, 1 );
+    const rails = repeatPoly( rail, sides, 0, 1 ).fillet( railRadius );
     hex = hex.fuse( rails );
 
   }
