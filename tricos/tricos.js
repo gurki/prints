@@ -8,7 +8,7 @@ const {
 } = replicad;
 
 const defaultParams = {
-  sides: 5
+  sides: 6
 };
 
 
@@ -134,7 +134,7 @@ const main = ( _, params ) => {
       
     const unobDrawing = draw()
       .vLine( nobSize )
-      .hLine( wall + tolerance )
+      .hLine( wall )
       .vLine( nobRim )
       .lineTo( [ wall * 2, nobSize - nobRim ] )    
       .vLineTo( 0 )
