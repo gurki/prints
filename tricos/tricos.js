@@ -8,7 +8,7 @@ const {
 } = replicad;
 
 const defaultParams = {
-  sides: 6
+  sides: 5
 };
 
 
@@ -128,7 +128,7 @@ const main = ( _, params ) => {
   const nobSize = wall;
   const nobRim = l * 0.5;
   const jointOffset = 1 / 4 * ( t + tinner ) / 2;
-  const tolerance = 0.2;
+  const tolerance = 0.1;
 
   if ( isHex ) {
       
