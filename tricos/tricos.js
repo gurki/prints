@@ -82,8 +82,8 @@ function snapFit( options = {
 
   if ( radiusHook ) {
     drawing = drawing
-      .vLine( overhang )
-      .bulgeArcTo( [ overhang, 0 ], overhang );
+      .movePointerTo( [ 0, beamThick ] )
+      .bulgeArc( beamThick, -beamThick, 0.5 * beamThick );
   }
 
   drawing = drawing
@@ -95,8 +95,8 @@ function snapFit( options = {
 
   if ( radiusBack ) {
     drawing = drawing
-      .lineTo( [ overhang, -beamThick ] )
-      .tangentArcTo( [ 0, -beamThick - overhang ], overhang )
+      .lineTo( [ beamThick, -beamThick ] )
+      .tangentArcTo( [ 0, -beamThick - beamThick ], beamThick )
   } else {
     drawing = drawing.lineTo( [ 0, -beamThick ] );
   }
@@ -119,26 +119,36 @@ const main = ( _, params ) => {
   const d6 = t * ( 3 * Math.sqrt( 3 ) + Math.sqrt( 15 ) ) / 4;
   const d5 = t * Math.sqrt( 10 * ( 125 + 41 * Math.sqrt( 5 ) ) ) / 20;
 
-  const tol = 0.2;
+  const tol = 0.1;
 
   const snapOptions = {
     length: 2 + tol,
     beamThin: 2 * l, //  beam end
-    beamThick: 3 * l,  //  beam start
+    beamThick: 2 * l,  //  beam start
     overhang: 2 * l, //  overhang depth
     hook: 2 * l, //  hook length
     retraction: 0, //  retraction side width
-    radiusHook: false, //  mount radius
+    radiusHook: true, //  mount radius
     radiusBack: true
   }
-  const male = drawRectangle( 2, 20 ).sketchOnPlane().extrude( h ).translate( -1 );
+  
+  const dimpleA = drawCircle( 0.5 ).sketchOnPlane( "XY", h ).extrude( 0.4 );
+  const dimpleB = drawRectangle( 1, 1 ).sketchOnPlane( "XY", h ).extrude( 0.4 );
+  let male = drawRectangle( 2, 20 ).sketchOnPlane().extrude( h )
+
+  male = male.fuse( dimpleA.clone().translateY( 9 ) );
+  // male = male.fuse( dimpleA.clone().translateY( 8 ) );
+  male = male.fuse( dimpleB.clone().translateY( -9 ) );
+  male = male.fuse( dimpleB.clone().translateY( -8 ) );
+  male = male.translate( -1 );
+
   const hook1 = snapFit( snapOptions ).sketchOnPlane().extrude( 4 ).translate( 0, 2, 0 );
   const hook2 = snapFit( snapOptions ).sketchOnPlane().extrude( 4 ).mirror( "XZ").translate( 0, -2, 0 );
   const hooks = hook1.fuse( hook2 ).translate( 0, 0, 3 ); 
   const cutout1 = drawRectangle( 4 + 2 * tol, 4 + 2 * tol ).sketchOnPlane( "YZ" ).extrude( 10 ).translate( 0, 0, 5 );
-  // const cutout2 = drawRectangle( 4 + 2 * tol + 2 * snapOptions.overhang, 4 + 2 * tol ).sketchOnPlane( "YZ", wall - tol ).extrude( 10 ).translate( 0, 0, 5 );
-  const female = male.clone().translate( 2 ).cut( cutout1 )//.cut( cutout2 );
-  return [ male.fuse( hooks ),  ];
+  const cutout2 = drawRectangle( 4 + 2 * tol + 2, 4 + 2 * tol ).sketchOnPlane( "YZ", snapOptions.length - tol ).extrude( 10 ).translate( 0, 0, 5 );
+  const female = male.clone().translate( 2 ).cut( cutout1 ).cut( cutout2 );
+  return [ male.fuse( hooks ), female ];
 
   const d = isHex ? d6 : d5;
   const { r, R } = fromSide( t, sides );
