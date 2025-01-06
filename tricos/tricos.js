@@ -8,7 +8,7 @@ const {
 } = replicad;
 
 const defaultParams = {
-  sides: 5
+  sides: 6
 };
 
 
@@ -64,6 +64,49 @@ function repeatPoly( shape, sides, offset = 0, stride = 1 ) {
 }
 
 
+function snapFit( options = {
+    length, //  beam length
+    beamThin: 0.2, //  beam end
+    beamThick: 0.4,  //  beam start
+    overhang: 0.2, //  overhang depth
+    hook: 0.2, //  hook length
+    retraction: 0, //  retraction side width
+    radiusHook: false, //  mount radius
+    radiusBack: true
+  }) {
+
+  const { length, beamThin, beamThick, overhang, hook, retraction, radiusHook, radiusBack } = options;
+
+  //  https://coloringchaos.github.io/form-fall-16/joints
+  let drawing = draw();
+
+  if ( radiusHook ) {
+    drawing = drawing
+      .vLine( overhang )
+      .bulgeArcTo( [ overhang, 0 ], overhang );
+  }
+
+  drawing = drawing
+    .hLineTo( length )
+    .line( retraction, overhang )
+    .hLine( hook )
+    .line( overhang, -overhang )
+    .vLine( -beamThin )
+
+  if ( radiusBack ) {
+    drawing = drawing
+      .lineTo( [ overhang, -beamThick ] )
+      .tangentArcTo( [ 0, -beamThick - overhang ], overhang )
+  } else {
+    drawing = drawing.lineTo( [ 0, -beamThick ] );
+  }
+    
+  drawing = drawing.close();
+  return drawing;
+
+}
+
+
 const main = ( _, params ) => {
 
   const { sides } = params;
@@ -76,7 +119,26 @@ const main = ( _, params ) => {
   const d6 = t * ( 3 * Math.sqrt( 3 ) + Math.sqrt( 15 ) ) / 4;
   const d5 = t * Math.sqrt( 10 * ( 125 + 41 * Math.sqrt( 5 ) ) ) / 20;
 
-  console.log( d6, d5 );
+  const tol = 0.2;
+
+  const snapOptions = {
+    length: 2 + tol,
+    beamThin: 2 * l, //  beam end
+    beamThick: 3 * l,  //  beam start
+    overhang: 2 * l, //  overhang depth
+    hook: 2 * l, //  hook length
+    retraction: 0, //  retraction side width
+    radiusHook: false, //  mount radius
+    radiusBack: true
+  }
+  const male = drawRectangle( 2, 20 ).sketchOnPlane().extrude( h ).translate( -1 );
+  const hook1 = snapFit( snapOptions ).sketchOnPlane().extrude( 4 ).translate( 0, 2, 0 );
+  const hook2 = snapFit( snapOptions ).sketchOnPlane().extrude( 4 ).mirror( "XZ").translate( 0, -2, 0 );
+  const hooks = hook1.fuse( hook2 ).translate( 0, 0, 3 ); 
+  const cutout1 = drawRectangle( 4 + 2 * tol, 4 + 2 * tol ).sketchOnPlane( "YZ" ).extrude( 10 ).translate( 0, 0, 5 );
+  // const cutout2 = drawRectangle( 4 + 2 * tol + 2 * snapOptions.overhang, 4 + 2 * tol ).sketchOnPlane( "YZ", wall - tol ).extrude( 10 ).translate( 0, 0, 5 );
+  const female = male.clone().translate( 2 ).cut( cutout1 )//.cut( cutout2 );
+  return [ male.fuse( hooks ),  ];
 
   const d = isHex ? d6 : d5;
   const { r, R } = fromSide( t, sides );
